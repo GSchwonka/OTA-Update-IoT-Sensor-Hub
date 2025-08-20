@@ -1,65 +1,107 @@
-# OTA-Update IoT Sensor Hub
+# ESP32 Smart Home Controller (Wi-Fi + MQTT)
 
-## Project Title
-OTA-Update IoT Sensor Hub
+## 📌 Project Overview
+This project implements a **Smart Home Controller** using an **ESP32** microcontroller.  
+The device connects to Wi-Fi and communicates with an **MQTT broker** to control a **relay (GPIO 23)** for switching a lamp on/off, and to publish temperature/humidity readings from a **DHT22 sensor (GPIO 4)** every 10 seconds.  
 
-## One-line Description
-ESP32-based multi-sensor node with secure OTA updates, WebSocket/MQTT telemetry, and a lightweight dashboard.
+It includes automatic reconnection for Wi-Fi and MQTT, ensuring reliable operation in real-world scenarios.
 
-## Features
-- Reads temperature, humidity and IMU sensors.
-- Local async web dashboard (WebSocket) for live graphs.
-- MQTT telemetry to a Raspberry Pi broker.
-- Secure OTA (HTTP or MQTT-based) with rollback on failure.
-- Basic power management and watchdogs.
+---
 
-## Hardware
-- ESP32 dev board (e.g., ESP32-WROOM-32)
-- BME280 (temp/humidity/pressure) or DHT22
-- MPU6050 IMU (optional)
-- Micro USB cable
-- Optional: SD card module for local logging
+## ✨ Features
+- ✅ Relay control (GPIO 23) via MQTT commands (`home/relay/set`).  
+- ✅ DHT22 sensor readings (temperature & humidity) published every 10 seconds to `home/sensor/dht22`.  
+- ✅ MQTT last will & testament (LWT) for device availability.  
+- ✅ Automatic reconnection on Wi-Fi or MQTT disconnection.  
+- ✅ Configurable Wi-Fi and MQTT credentials.  
 
-## Software / Libraries
-- PlatformIO or Arduino IDE
-- AsyncTCP, ESPAsyncWebServer (or native alternatives)
-- PubSubClient or AsyncMQTT
-- ArduinoOTA (or custom HTTP OTA implementation)
+---
 
-## Repo Structure
+## 🛠️ Hardware
+- ESP32 DevKit (e.g., WROOM-32)  
+- DHT22 sensor (GPIO 4)  
+- Relay module (GPIO 23)  
+- Micro USB cable  
+- Breadboard + jumper wires  
+
+---
+
+## 💻 Software & Libraries
+- [PlatformIO](https://platformio.org/) (recommended) or Arduino IDE  
+- [PubSubClient](https://pubsubclient.knolleary.net/) (MQTT)  
+- [DHT sensor library](https://github.com/adafruit/DHT-sensor-library)  
+- WiFi library (built-in with ESP32 Arduino Core)  
+
+---
+
+## 📂 Repo Structure
 ```
 /firmware
-  /src
-  /include
-/server
-  /mqtt-broker-setup
+  ├── src/
+  │   └── main.cpp
+  ├── include/
+  ├── platformio.ini
 /docs
 /assets
 README.md
 ```
 
-## Quick Start (flash & run)
-1. Clone repo
-2. Configure `platformio.ini` or `boards.txt` with your board
-3. Edit `config/defaults.h` for Wi-Fi and MQTT settings
-4. `pio run -t upload` (or flash from Arduino IDE)
-5. Access device dashboard at `http://<device-ip>`
+---
 
-## OTA Procedure
-- Upload new firmware binary to `server/firmware/` and trigger OTA via the Pi tool or MQTT topic `device/ota/<device-id>`.
-- Device validates checksum and applies update, if fails it rolls back to previous firmware.
+## ⚡ Quick Start
+1. **Clone the repository**  
+   ```bash
+   git clone https://github.com/<your-username>/esp32-smart-home-controller.git
+   cd esp32-smart-home-controller/firmware
+   ```
 
-## Diagnostics & Troubleshooting
-- Serial logs: 115200 bps
-- Watchdog status exposed at `GET /status`
-- Common issues: incorrect MQTT credentials, MQTT broker unreachable, OTA checksum mismatch
+2. **Configure Wi-Fi & MQTT**  
+   Edit `include/config.h` (create if missing):
+   ```cpp
+   #define WIFI_SSID     "your-ssid"
+   #define WIFI_PASS     "your-password"
+   #define MQTT_SERVER   "192.168.1.100"
+   #define MQTT_PORT     1883
+   #define MQTT_USER     "mqtt-user"
+   #define MQTT_PASS     "mqtt-pass"
+   ```
 
-## Demo
-Add `assets/demo.gif` showing live dashboard and OTA sequence.
+3. **Build & Flash**  
+   ```bash
+   pio run -t upload
+   ```
 
-## Notes on Design Choices
-- Why WebSocket? Low-latency live graphs without polling.
-- Why rollback? Field devices must not brick during updates.
+4. **Monitor Serial Logs**  
+   ```bash
+   pio device monitor -b 115200
+   ```
 
-## License
-MIT
+---
+
+## 📡 MQTT Topics
+- **Publish (sensor data):**
+  - `home/sensor/dht22/temperature`
+  - `home/sensor/dht22/humidity`
+
+- **Subscribe (relay control):**
+  - `home/relay/set` → payload: `"ON"` or `"OFF"`
+
+- **Device status:**
+  - `home/device/status` → `"online"` / `"offline"`
+
+---
+
+## 🧪 Testing
+- Use [MQTT Explorer](http://mqtt-explorer.com/) or `mosquitto_sub` to subscribe to sensor topics.  
+- Publish test commands to toggle relay:  
+  ```bash
+  mosquitto_pub -h 192.168.1.100 -t "home/relay/set" -m "ON"
+  mosquitto_pub -h 192.168.1.100 -t "home/relay/set" -m "OFF"
+  ```
+
+---
+
+## 📖 Notes on Design Choices
+- **MQTT LWT** ensures smart home platforms know if device is disconnected.  
+- **Automatic reconnection** makes the system resilient to Wi-Fi dropouts.  
+- **Config header file** makes it easier to change credentials without editing main code.  
